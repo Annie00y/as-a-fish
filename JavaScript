@@ -1,0 +1,851 @@
+JavaScript引擎有一个在行末自动添加分号的机制
+
+数据类型：
+Number： 123, 0.456, 1.2345e6(1.2345x1000,即1234.5), -99, NaN(Not a Number，当无法计算结果时用NaN表示), Infinity
+		2 / 0; // Infinity
+		0 / 0; // NaN
+		isNaN('foo') //true, isNaN(NaN) //true 很明显"foo"不是一个数字，它也不是NaN，这是自JavaScrip问世以来就一直存在的bug
+		ES6有个工具函数是Number.isNaN()
+		var a = 2 / "foo"; var b = "foo";
+		Number.isNaN(a);// true Number.isNaN(b);// false
+		语言规范是不区分int和float的：
+		parseInt('1') === parseFloat('1.0') // true
+		但是浏览器执行js时底层区分int／float是为了优化速度
+字符串  
+		如果字符串内部既包含'又包含"怎么办？可以用转义字符\来标识，比如：'I\'m \"OK\"!';
+		var s = 'Hello, world!';
+		s[0]; // 'H'
+		需要特别注意的是，字符串是不可变的，如果对字符串的某个索引赋值，不会有任何错误，但是，也没有任何效果：
+		s[0] = 'h'; s  // 'Hello, world!';
+		字符串常用方法，注意，调用这些方法本身不会改变原有字符串的内容，而是返回一个新字符串
+		var s = 'Hello';
+		s.toUpperCase(); // 'HELLO'
+		s.toLowerCase(); // 'hello'
+		s.indexOf('e');  // 1
+		s.substring(0,2);  //从索引0开始到2（不包括2），返回"He"
+		.substring(2); // 从索引2开始到结束，返回'llo'	
+布尔值 
+		false == 0; // true
+		===比较，它不会自动转换数据类型，如果数据类型不一致，返回false，如果一致，再比较
+		NaN === NaN; // false
+		唯一能判断NaN的方法是通过isNaN()函数：isNaN(NaN); // true
+		注意浮点数的相等比较：1 / 3 === (1 - 2 / 3); // false
+		这不是JavaScript的设计缺陷。浮点数在运算过程中会产生误差，因为计算机无法精确表示无限循环小数。要比较两个浮点数是否相等，只能计算它们之差的绝对值，看是否小于某个阈值
+		Math.abs(1 / 3 - (1 - 2 / 3)) < 0.0000001; // true
+null
+undefined  大多数情况下，我们都应该用null。undefined仅仅在判断函数参数是否传递的情况下有用
+对象    []有序集合, {}无序集合
+		变量名是大小写英文、数字、$和_的组合，且不能用数字开头。变量名也不能是JavaScript的关键字
+		这种变量本身类型不固定的语言称之为动态语言，与之对应的是静态语言。静态语言在定义变量时必须指定变量类型，如果赋值的时候类型不匹配，就会报错。例如Java是静态语言，赋值语句如下：int a = 123;
+		'use strict';
+		要取得Array的长度，直接访问length属性。但直接给Array的length赋一个新的值会导致Array大小的变化。
+		Array可以通过索引把对应的元素修改为新的值，因此，对Array的索引进行赋值会直接修改这个Array。
+		如果通过索引赋值时，索引超过了范围，同样会引起Array大小的变化。
+		Array也可以通过indexOf()来搜索一个指定的元素的位置：
+		var arr = [10, 20, '30', 'xyz'];
+		arr.indexOf(10); // 元素10的索引为0
+		slice()就是对应String的substring()版本，它截取Array的部分元素，然后返回一个新的Array：
+		var arr = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+		arr.slice(0, 3); // 从索引0开始，到索引3结束，但不包括索引3: ['A', 'B', 'C']
+		arr.slice(3); // 从索引3开始到结束: ['D', 'E', 'F', 'G']
+		pop()则把Array的最后一个元素删除掉，返回删除掉的元素，原数组变化
+		如果要往Array的头部添加若干元素，使用unshift()方法：arr.unshift(1,2), 返回当前数组长度，原数组变化
+		shift()方法则把Array的第一个元素删掉，返回删除掉的元素，原数组变化
+		sort()可以对当前Array进行排序，它会直接修改当前Array的元素位置，直接调用时，按照默认顺序排序
+			var arr = ['B', 'C', 'A'];
+			arr.sort();
+			arr; // ['A', 'B', 'C']
+		reverse()把整个Array的元素给掉个个，也就是反转，原数组变化
+		splice()方法是修改Array的“万能方法”，它可以从指定的索引开始删除若干元素，然后再从该位置添加若干元素：
+			var arr = ['Microsoft', 'Apple', 'Yahoo', 'AOL', 'Excite', 'Oracle'];
+			// 从索引2开始删除3个元素,然后再添加两个元素:
+			arr.splice(2, 3, 'Google', 'Facebook'); // 返回删除的元素 ['Yahoo', 'AOL', 'Excite']
+			arr; // ['Microsoft', 'Apple', 'Google', 'Facebook', 'Oracle']
+			// 只删除,不添加:
+			arr.splice(2, 2); // ['Google', 'Facebook']
+			arr; // ['Microsoft', 'Apple', 'Oracle']
+			// 只添加,不删除:
+			arr.splice(2, 0, 'Google', 'Facebook'); // 返回[],因为没有删除任何元素
+			arr; // ['Microsoft', 'Apple', 'Google', 'Facebook', 'Oracle']
+		concat()方法把当前的Array和另一个Array连接起来，并返回一个新的Array，原数组不变
+			var arr = ['A', 'B', 'C'];
+			var added = arr.concat([1, 2, 3]);
+			added; // ['A', 'B', 'C', 1, 2, 3]
+			arr; // ['A', 'B', 'C']
+		实际上，concat()方法可以接收任意个元素和Array，并且自动把Array拆开，拆开一层，然后全部添加到新的Array里
+		join()方法是一个非常实用的方法，它把当前Array的每个元素都用指定的字符串连接起来，然后返回连接后的字符串，原数组不变
+		如果Array的元素不是字符串，将自动转换为字符串后再连接。
+		访问属性是通过.操作符完成的，但这要求属性名必须是一个有效的变量名。如果属性名包含特殊字符，就必须用''括起来。访问这个属性也无法使用.操作符，必须用['xxx']来访问
+		实际上JavaScript对象的所有属性都是字符串，不过属性对应的值可以是任意数据类型。
+		如果访问一个不存在的属性会返回什么呢？JavaScript规定，访问不存在的属性不报错，而是返回undefined。
+		delete object.prop  删除对象属性
+		如果我们要检测对象是否拥有某一属性，可以用in操作符：
+		var person = {name: 'YTon', age: 20, grade: "高三"}
+		'name' in person; // true
+		'score' in person; // false
+		不过要小心，如果in判断一个属性存在，这个属性不一定是person的，它可能是person继承得到的：
+		'toString' in person // true
+		因为toString定义在object对象中，而所有对象最终都会在原型链上指向object，所以person也拥有toString属性。
+		要判断一个属性是否是person自身拥有的，而不是继承得到的，可以用hasOwnProperty()方法:
+		person.hasOwnProperty('name'); // true
+		person.hasOwnProperty('toString'); // false
+		
+函数    形参的参数名就是变量名，只有位置有意义，名字无所谓，名字只有一个作用：提高可读性。
+
+Map     Map是一组键值对的结构，具有极快的查找速度。
+		var m = new Map([['Michael', 95], ['Bob', 75], ['Tracy', 85]]);
+		m.get('Michael'); // 95
+		初始化Map需要一个二维数组，或者直接初始化一个空Map。Map具有以下方法：
+		var m = new Map(); // 空Map
+		m.set('Adam', 67); // 添加新的key-value
+		m.set('Bob', 59);
+		m.has('Adam'); // 是否存在key 'Adam': true
+		m.get('Adam'); // 67
+		m.delete('Adam'); // 删除key 'Adam'
+		m.get('Adam'); // undefined
+		
+		由于一个key只能对应一个value，所以，多次对一个key放入value，后面的值会把前面的值冲掉：
+
+Set		Set和Map类似，也是一组key的集合，但不存储value。由于key不能重复，所以，在Set中，没有重复的key。
+		要创建一个Set，需要提供一个Array作为输入，或者直接创建一个空Set：
+		var s1 = new Set(); // 空Set
+		var s2 = new Set([1, 2, 3, 3, 4, '4']); // 含1, 2, 3, 4, '4'
+		通过add(key)方法可以添加元素到Set中，可以重复添加，但不会有效果：
+		s1.add(5);
+		s1; // Set {5}
+		通过delete(key)方法可以删除元素：
+		s1.delete(5);
+		s1; // Set {}
+
+
+var messages = ['1', '2', '3'];
+for (var i = 0; i < messages.length; i ++) {
+	setTimeout(function(){
+		console.log(messages[i]);
+	}, i * 1500);
+}
+将代码放到chrome里使用断点调试和单步调试。由于使用setTimeout;计时功能，当i = 2时，执行时间还未达到设定的时间，i还要执行i++，所以i = 3； message[i]=message[3];由于数组中没有message[3]这个元素，所以显示undefine.
+
+0 === null  //false
+0 >= null;  //true
+null >= 0;  //true
+0 === Number(null);  //true
+Number(undefined);  //NaN
+Number(null);     //0
+NaN === 0;     //false
+null === undefined;   //false
+
+循环	if(){...}else{...} 如果语句块只包含一条语句，那么可以省略{}
+		请注意，if...else...语句的执行特点是二选一，在多个if...else...语句中，如果某个条件成立，则后续就不再继续判断了。
+		JavaScript把null、undefined、0、NaN和空字符串''视为false，其他值一概视为true。
+
+		var height = parseFloat(prompt('请输入身高(m):'));
+		var weight = parseFloat(prompt('请输入体重(kg):'));
+
+		利用for循环计算1 * 2 * 3 * ... * 10的结果：
+		'use strict';
+		...
+		if (x === 3628800) {
+			console.log('1 x 2 x 3 x ... x 10 = ' + x);
+		}
+		else {
+			console.log('计算错误');
+		}
+		for循环的3个条件都是可以省略的，如果没有退出循环的判断条件，就必须使用break语句退出循环，否则就是死循环：
+		var x = 0;
+		for (;;) { // 将无限循环下去
+			if (x > 100) {
+				break; // 通过if判断来退出循环
+			}
+			x ++;
+		}
+		for ... in循环，它可以把一个对象的所有属性依次循环出来
+		要过滤掉对象继承的属性，用hasOwnProperty()来实现:
+		var obj = {
+			name: 'Jack',
+			age: 20,
+			city: 'Beijing'
+		};
+		for (var key in obj) {
+			if (obj.hasOwnProperty(key)) {
+				console.log(key); // 'name', 'age', 'city'
+			}
+		}
+		由于Array也是对象，而它的每个元素的索引被视为对象的属性，因此，for ... in循环可以直接循环出Array的索引：
+		var a = ['A', 'B', 'C'];
+		for (var i in a) {
+			console.log(i); // '0', '1', '2'
+			console.log(a[i]); // 'A', 'B', 'C'
+		}
+		请注意，for ... in对Array的循环得到的是String而不是Number。
+
+		for循环在已知循环的初始和结束条件时非常有用。而上述忽略了条件的for循环容易让人看不清循环的逻辑，此时用while循环更佳。
+
+		while循环只有一个判断条件，条件满足，就不断循环，条件不满足时则退出循环。比如我们要计算100以内所有奇数之和，可以用while循环实现：
+		var x = 0;
+		var n = 99;
+		while (n > 0) {
+			x = x + n;
+			n = n - 2;
+		}
+		x; // 2500
+		在循环内部变量n不断自减，直到变为-1时，不再满足while条件，循环退出。
+
+		do { ... } while()循环，它和while循环的唯一区别在于，不是在每次循环开始的时候判断条件，而是在每次循环完成的时候判断条件
+		var n = 0;
+		do {
+			n = n + 1;
+		} while (n < 100);
+		n; // 100
+		用do { ... } while()循环要小心，循环体会至少执行1次，而for和while循环则可能一次都不执行。
+		请利用循环遍历数组中的每个名字，并显示Hello, xxx!：
+		请尝试while循环，并以正序、倒序两种方式遍历。
+		'use strict';
+		var arr = ['Bart', 'Lisa', 'Adam'];
+	
+JavaScript的默认对象表示方式{}可以视为其他语言中的Map或Dictionary的数据结构，即一组键值对
+但是JavaScript的对象有个小问题，就是键必须是字符串。但实际上Number或者其他数据类型作为键也是非常合理的。
+
+iterable    遍历Array可以采用下标循环，遍历Map和Set就无法使用下标。
+			为了统一集合类型，ES6标准引入了新的iterable类型，Array、Map和Set都属于iterable类型 
+		    具有iterable类型的集合可以通过新的for ... of循环来遍历。
+			var a = ['A', 'B', 'C'];
+			var s = new Set(['A', 'B', 'C']);
+			var m = new Map([[1, 'x'], [2, 'y'], [3, 'z']]);
+			for (var x of a) { // 遍历Array
+				console.log(x);
+			}
+			for (var x of s) { // 遍历Set
+				console.log(x);
+			}
+			for (var x of m) { // 遍历Map
+				console.log(x[0] + '=' + x[1]);
+			}
+			
+			for ... in循环由于历史遗留问题，它遍历的实际上是对象的属性名称。一个Array数组实际上也是一个对象，它的每个元素的索引被视为一个属性。
+			当我们手动给Array对象添加了额外的属性后，for ... in循环将带来意想不到的意外效果：
+			var a = ['A', 'B', 'C'];
+			a.name = 'Hello';
+			for (var x in a) {
+				console.log(x); // '0', '1', '2', 'name'
+			}
+			for ... in循环将把name包括在内，但Array的length属性却不包括在内。
+			
+			for ... of循环则完全修复了这些问题，它只循环集合本身的元素：
+			var a = ['A', 'B', 'C'];
+			a.name = 'Hello';
+			for (var x of a) {
+				console.log(x); // 'A', 'B', 'C'
+			}
+			这就是为什么要引入新的for ... of循环。
+
+			然而，更好的方式是直接使用iterable内置的forEach方法，它接收一个函数，每次迭代就自动回调该函数。以Array为例：
+			'use strict';
+			var a = ['A', 'B', 'C'];
+			a.forEach(function (element, index, array) {
+				// element: 指向当前元素的值
+				// index: 指向当前索引
+				// array: 指向Array对象本身
+				console.log(element + ', index = ' + index);
+			});
+			
+			Set与Array类似，但Set没有索引，因此回调函数的前两个参数都是元素本身：
+			var s = new Set(['A', 'B', 'C']);
+			s.forEach(function (element, sameElement, set) {
+				console.log(element);
+			});
+			
+			Map的回调函数参数依次为value、key和map本身：
+			var m = new Map([[1, 'x'], [2, 'y'], [3, 'z']]);
+			m.forEach(function (value, key, map) {
+				console.log(value);
+			});
+			
+			
+函数    function abs(x) {
+			if (x >= 0) {
+				return x;
+			} else {
+				return -x;
+			}
+		}
+		由于JavaScript的函数也是一个对象，上述定义的abs()函数实际上是一个函数对象，而函数名abs可以视为指向该函数的变量
+		因此，第二种定义函数的方式如下：
+		var abs = function (x) {
+			if (x >= 0) {
+				return x;
+			} else {
+				return -x;
+			}
+		};
+		在这种方式下，function (x) { ... }是一个匿名函数，它没有函数名。但是，这个匿名函数赋值给了变量abs，所以，通过变量abs就可以调用该函数。
+		上述两种定义完全等价，注意第二种方式按照完整语法需要在函数体末尾加一个;，表示赋值语句结束。
+		传入的参数比定义的少也没有问题：abs(); // 返回NaN
+		此时abs(x)函数的参数x将收到undefined，计算结果为NaN。
+		
+		要避免收到undefined，可以对参数进行检查：
+		function abs(x) {
+			if (typeof x !== 'number') {
+				throw 'Not a number';
+			}
+			if (x >= 0) {
+				return x;
+			} else {
+				return -x;
+			}
+		}
+		
+		关键字arguments，它只在函数内部起作用，并且永远指向当前函数的调用者传入的所有参数。arguments类似Array但它不是一个Array：
+		'use strict'
+		function foo(x) {
+			console.log('x = ' + x); // 10
+			for (var i=0; i<arguments.length; i++) {
+				console.log('arg ' + i + ' = ' + arguments[i]); // 10, 20, 30
+			}
+		}
+		foo(10, 20, 30);
+		利用arguments，你可以获得调用者传入的所有参数。也就是说，即使函数不定义任何参数，还是可以拿到参数的值：
+		function abs() {
+			if (arguments.length === 0) {
+				return 0;
+			}
+			var x = arguments[0];
+			return x >= 0 ? x : -x;
+		}
+		
+		arguments最常用于判断传入参数的个数。你可能会看到这样的写法：
+		// foo(a[, b], c)
+		// 接收2~3个参数，b是可选参数，如果只传2个参数，b默认为null：
+		function foo(a, b, c) {
+			if (arguments.length === 2) {
+				// 实际拿到的参数是a和b，c为undefined
+				c = b; // 把b赋给c
+				b = null; // b变为默认值
+			}
+			// ...
+		}
+		要把中间的参数b变为“可选”参数，就只能通过arguments判断，然后重新调整参数并赋值。
+
+		function foo(a, b) {
+			var i, rest = [];
+			if (arguments.length > 2) {
+				for (i = 2; i<arguments.length; i++) {
+					rest.push(arguments[i]);
+				}
+			}
+			console.log('a = ' + a);
+			console.log('b = ' + b);
+			console.log(rest);
+		}
+		为了获取除了已定义参数a、b之外的参数，我们不得不用arguments，并且循环要从索引2开始以便排除前两个参数，这种写法很别扭，只是为了获得额外的rest参数，有没有更好的方法？
+		
+		ES6标准引入了rest参数，上面的函数可以改写为：
+		function foo(a, b, ...rest) {
+			console.log('a = ' + a);
+			console.log('b = ' + b);
+			console.log(rest);
+		}
+		foo(1, 2, 3, 4, 5);
+		foo(1);
+		rest参数只能写在最后，前面用...标识，从运行结果可知，传入的参数先绑定a、b，多余的参数以数组形式交给变量rest，所以，不再需要arguments我们就获取了全部参数。
+		如果传入的参数连正常定义的参数都没填满，也不要紧，rest参数会接收一个空数组（注意不是undefined）。
+		
+		请用rest参数编写一个sum()函数，接收任意个参数并返回它们的和：
+		
+		// 测试:
+		var i, args = [];
+		for (i=1; i<=100; i++) {
+			args.push(i);
+		}
+		if (sum() !== 0) {
+			console.log('测试失败: sum() = ' + sum());
+		} else if (sum(1) !== 1) {
+			console.log('测试失败: sum(1) = ' + sum(1));
+		} else if (sum(2, 3) !== 5) {
+			console.log('测试失败: sum(2, 3) = ' + sum(2, 3));
+		} else if (sum.apply(null, args) !== 5050) {
+			console.log('测试失败: sum(1, 2, 3, ..., 100) = ' + sum.apply(null, args));
+		} else {
+			console.log('测试通过!');
+		}
+		
+		function foo() {
+			return
+				{ name: 'foo' };
+		}
+		foo(); // undefined
+		由于JavaScript引擎在行末自动添加分号的机制，上面的代码实际上变成了：
+		function foo() {
+			return; // 自动添加了分号，相当于return undefined;
+				{ name: 'foo' }; // 这行语句已经没法执行到了
+		}
+		所以正确的多行写法是：
+		function foo() {
+			return { // 这里不会自动加分号，因为{表示语句尚未结束
+				name: 'foo'
+			};
+		}
+		
+		由于JavaScript的函数可以嵌套，此时，内部函数可以访问外部函数定义的变量，反过来则不行。
+		如果内部函数和外部函数的变量名重名怎么办？来测试一下：
+		'use strict';
+		function foo() {
+			var x = 1;
+			function bar() {
+				var x = 'A';
+				console.log('x in bar() = ' + x); // 'A'
+			}
+			console.log('x in foo() = ' + x); // 1
+			bar();
+		}
+		foo();
+		这说明JavaScript的函数在查找变量时从自身函数定义开始，从“内”向“外”查找。如果内部函数定义了与外部函数重名的变量，则内部函数的变量将“屏蔽”外部函数的变量。
+		
+		JavaScript的函数定义有个特点，它会先扫描整个函数体的语句，把所有申明的变量“提升”到函数顶部：
+		'use strict';
+		function foo() {
+			var x = 'Hello, ' + y;
+			console.log(x);
+			var y = 'Bob';
+		}
+		foo();
+		虽然是strict模式，但语句var x = 'Hello, ' + y;并不报错，原因是变量y在稍后申明了。但是console.log显示Hello, undefined，说明变量y的值为undefined。这正是因为JavaScript引擎自动提升了变量y的声明，但不会提升变量y的赋值。
+		
+		由于JavaScript的这一怪异的“特性”，我们在函数内部定义变量时，请严格遵守“在函数内部首先申明所有变量”这一规则。最常见的做法是用一个var申明函数内部用到的所有变量：
+
+		function foo() {
+			var
+				x = 1, // x初始化为1
+				y = x + 1, // y初始化为2
+				z, i; // z和i为undefined
+			// 其他语句:
+			for (i=0; i<100; i++) {
+				...
+			}
+		}
+		
+		JavaScript默认有一个全局对象window，全局作用域的变量实际上被绑定到window的一个属性
+		
+		'use strict';
+		var course = 'Learn JavaScript';
+		alert(course); // 'Learn JavaScript'
+		alert(window.course); // 'Learn JavaScript'
+		因此，直接访问全局变量course和访问window.course是完全一样的。
+
+		你可能猜到了，由于函数定义有两种方式，以变量方式var foo = function () {}定义的函数实际上也是一个全局变量，因此，顶层函数的定义也被视为一个全局变量，并绑定到window对象：
+		'use strict';
+		function foo() {
+			alert('foo');
+		}
+		foo(); // 直接调用foo()
+		window.foo(); // 通过window.foo()调用
+		
+		进一步大胆地猜测，我们每次直接调用的alert()函数其实也是window的一个变量：
+		'use strict';
+		window.alert('调用window.alert()');
+		// 把alert保存到另一个变量:
+		var old_alert = window.alert;
+		// 给alert赋一个新函数:
+		window.alert = function () {}
+		alert('无法用alert()显示了!');
+		// 恢复alert:
+		window.alert = old_alert;
+		alert('又可以用alert()了!');
+		这说明JavaScript实际上只有一个全局作用域。任何变量（函数也视为变量），如果没有在当前函数作用域中找到，就会继续往上查找，最后如果在全局作用域中也没有找到，则报ReferenceError错误。
+
+		全局变量会绑定到window上，不同的JavaScript文件如果使用了相同的全局变量，或者定义了相同名字的顶层函数，都会造成命名冲突，并且很难被发现。
+		减少冲突的一个方法是把自己的所有变量和函数全部绑定到一个全局变量中。例如：
+		// 唯一的全局变量MYAPP:
+		var MYAPP = {};
+		// 其他变量:
+		MYAPP.name = 'myapp';
+		MYAPP.version = 1.0;
+		// 其他函数:
+		MYAPP.foo = function () {
+			return 'foo';
+		};
+		把自己的代码全部放入唯一的名字空间MYAPP中，会大大减少全局变量冲突的可能。
+		许多著名的JavaScript库都是这么干的：jQuery，YUI，underscore等等。
+		
+		由于var和let申明的是变量，如果要申明一个常量，在ES6之前是不行的，我们通常用全部大写的变量来表示“这是一个常量，不要修改它的值”：
+		var PI = 3.14;
+		ES6标准引入了新的关键字const来定义常量，const与let都具有块级作用域：
+		'use strict';
+		const PI = 3.14;
+		PI = 3; // 某些浏览器不报错，但是无效果！
+		PI; // 3.14
+
+		注意，对数组元素进行解构赋值时，多个变量要用[...]括起来。
+		如果数组本身还有嵌套，也可以通过下面的形式进行解构赋值，注意嵌套层次和位置要保持一致：
+		let [x, [y, z]] = ['hello', ['JavaScript', 'ES6']];
+		x; // 'hello'
+		y; // 'JavaScript'
+		z; // 'ES6'
+		
+		解构赋值还可以忽略某些元素：
+		let [, , z] = ['hello', 'JavaScript', 'ES6']; // 忽略前两个元素，只对z赋值第三个元素
+		z; // 'ES6'
+		
+		如果需要从一个对象中取出若干属性，也可以使用解构赋值，便于快速获取对象的指定属性：
+		'use strict';
+		var person = {
+			name: '小明',
+			age: 20,
+			gender: 'male',
+			passport: 'G-12345678',
+			school: 'No.4 middle school'
+		};
+		var {name, age, passport} = person;
+		
+		对一个对象进行解构赋值时，同样可以直接对嵌套的对象属性进行赋值，只要保证对应的层次是一致的：
+		var person = {
+			name: '小明',
+			age: 20,
+			gender: 'male',
+			passport: 'G-12345678',
+			school: 'No.4 middle school',
+			address: {
+				city: 'Beijing',
+				street: 'No.1 Road',
+				zipcode: '100001'
+			}
+		};
+		var {name, address: {city, zip}} = person;
+		name; // '小明'
+		city; // 'Beijing'
+		zip; // undefined, 因为属性名是zipcode而不是zip
+		// 注意: address不是变量，而是为了让city和zip获得嵌套的address对象的属性:
+		address; // Uncaught ReferenceError: address is not defined
+		
+		使用解构赋值对对象属性进行赋值时，如果对应的属性不存在，变量将被赋值为undefined，这和引用一个不存在的属性获得undefined是一致的。如果要使用的变量名和属性名不一致，可以用下面的语法获取：
+		var person = {
+			name: '小明',
+			age: 20,
+			gender: 'male',
+			passport: 'G-12345678',
+			school: 'No.4 middle school'
+		};
+
+		// 把passport属性赋值给变量id:
+		let {name, passport:id} = person;
+		name; // '小明'
+		id; // 'G-12345678'
+		// 注意: passport不是变量，而是为了让变量id获得passport属性:
+		passport; // Uncaught ReferenceError: passport is not defined
+
+		解构赋值还可以使用默认值，这样就避免了不存在的属性返回undefined的问题：
+		var person = {
+			name: '小明',
+			age: 20,
+			gender: 'male',
+			passport: 'G-12345678'
+		};
+		// 如果person对象没有single属性，默认赋值为true:
+		var {name, single=true} = person;
+		name; // '小明'
+		single; // true
+		
+		有些时候，如果变量已经被声明了，再次赋值的时候，正确的写法也会报语法错误：
+		// 声明变量:
+		var x, y;
+		// 解构赋值:
+		{x, y} = { name: '小明', x: 100, y: 200};
+		// 语法错误: Uncaught SyntaxError: Unexpected token =
+		这是因为JavaScript引擎把{开头的语句当作了块处理，于是=不再合法。解决方法是用小括号括起来：
+		({x, y} = { name: '小明', x: 100, y: 200});
+
+		解构赋值在很多时候可以大大简化代码。例如，交换两个变量x和y的值，可以这么写，不再需要临时变量：
+		var x=1, y=2;
+		[x, y] = [y, x]
+
+		快速获取当前页面的域名和路径：
+		var {hostname:domain, pathname:path} = location;
+
+		如果一个函数接收一个对象作为参数，那么，可以使用解构直接把对象的属性绑定到变量中。例如，下面的函数可以快速创建一个Date对象：
+		function buildDate({year, month, day, hour=0, minute=0, second=0}) {
+			return new Date(year + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second);
+		}
+		它的方便之处在于传入的对象只需要year、month和day这三个属性：
+		buildDate({ year: 2017, month: 1, day: 1 });
+		// Sun Jan 01 2017 00:00:00 GMT+0800 (CST)
+		也可以传入hour、minute和second属性：
+		buildDate({ year: 2017, month: 1, day: 1, hour: 20, minute: 15 });
+		// Sun Jan 01 2017 20:15:00 GMT+0800 (CST)
+
+		使用解构赋值可以减少代码量，但是，需要在支持ES6解构赋值特性的现代浏览器中才能正常运行
+
+方法	在一个对象中绑定函数，称为这个对象的方法。
+		var xiaoming = {
+			name: '小明',
+			birth: 1990,
+			age: function () {
+				var y = new Date().getFullYear();
+				return y - this.birth;
+			}
+		};
+		xiaoming.age; // function xiaoming.age()
+		xiaoming.age(); // 今年调用是29,明年调用就变成30了
+		绑定到对象上的函数称为方法，和普通函数也没啥区别，但是它在内部使用了一个this关键字，这个东东是什么？
+		在一个方法内部，this是一个特殊变量，它始终指向当前对象，也就是xiaoming这个变量。所以，this.birth可以拿到xiaoming的birth属性。
+
+		让我们拆开写：
+		function getAge() {
+			var y = new Date().getFullYear();
+			return y - this.birth;
+		}
+		var xiaoming = {
+			name: '小明',
+			birth: 1990,
+			age: getAge
+		};
+		xiaoming.age(); // 25, 正常结果
+		getAge(); // NaN
+		单独调用函数getAge()怎么返回了NaN？请注意，我们已经进入到了JavaScript的一个大坑里。
+		
+		JavaScript的函数内部如果调用了this，那么这个this到底指向谁？
+		答案是，视情况而定！
+		如果以对象的方法形式调用，比如xiaoming.age()，该函数的this指向被调用的对象，也就是xiaoming，这是符合我们预期的。
+		如果单独调用函数，比如getAge()，此时，该函数的this指向全局对象，也就是window。
+		坑爹啊！
+		
+		更坑爹的是，如果这么写：
+		var fn = xiaoming.age; // 先拿到xiaoming的age函数
+		fn(); // NaN
+		也是不行的！要保证this指向正确，必须用obj.xxx()的形式调用！
+		
+		由于这是一个巨大的设计错误，要想纠正可没那么简单。ECMA决定，在strict模式下让函数的this指向undefined，因此，在strict模式下，你会得到一个错误：
+		'use strict';
+		var xiaoming = {
+			name: '小明',
+			birth: 1990,
+			age: function () {
+				var y = new Date().getFullYear();
+				return y - this.birth;
+			}
+		};
+		var fn = xiaoming.age;
+		fn(); // Uncaught TypeError: Cannot read property 'birth' of undefined
+		这个决定只是让错误及时暴露出来，并没有解决this应该指向的正确位置。
+		
+		有些时候，喜欢重构的你把方法重构了一下：
+		'use strict';
+		var xiaoming = {
+			name: '小明',
+			birth: 1990,
+			age: function () {
+				function getAgeFromBirth() {
+					var y = new Date().getFullYear();
+					return y - this.birth;
+				}
+				return getAgeFromBirth();
+			}
+		};
+		xiaoming.age(); // Uncaught TypeError: Cannot read property 'birth' of undefined
+		结果又报错了！原因是this指针只在age方法的函数内指向xiaoming，在函数内部定义的函数，this又指向undefined了！（在非strict模式下，它重新指向全局对象window！）		
+		
+		修复的办法也不是没有，我们用一个that变量首先捕获this：
+		'use strict';
+		var xiaoming = {
+			name: '小明',
+			birth: 1990,
+			age: function () {
+				var that = this; // 在方法内部一开始就捕获this
+				function getAgeFromBirth() {
+					var y = new Date().getFullYear();
+					return y - that.birth; // 用that而不是this
+				}
+				return getAgeFromBirth();
+			}
+		};
+		xiaoming.age(); // 29
+		用var that = this;，你就可以放心地在方法内部定义其他函数，而不是把所有语句都堆到一个方法中。
+		
+		虽然在一个独立的函数调用中，根据是否是strict模式，this指向undefined或window，不过，我们还是可以控制this的指向的！
+		要指定函数的this指向哪个对象，可以用函数本身的apply方法，它接收两个参数，第一个参数就是需要绑定的this变量，第二个参数是Array，表示函数本身的参数。
+		用apply修复getAge()调用：
+
+		function getAge() {
+			var y = new Date().getFullYear();
+			return y - this.birth;
+		}
+		var xiaoming = {
+			name: '小明',
+			birth: 1990,
+			age: getAge
+		};
+		xiaoming.age(); // 25
+		getAge.apply(xiaoming, []); // 25, this指向xiaoming, 参数为空
+
+		另一个与apply()类似的方法是call()，唯一区别是：
+			apply()把参数打包成Array再传入；
+			call()把参数按顺序传入。
+
+		比如调用Math.max(3, 5, 4)，分别用apply()和call()实现如下：
+		Math.max.apply(null, [3, 5, 4]); // 5
+		Math.max.call(null, 3, 5, 4); // 5
+		对普通函数调用，我们通常把this绑定为null。
+		
+		利用apply()，我们还可以动态改变函数的行为。
+		JavaScript的所有对象都是动态的，即使内置的函数，我们也可以重新指向新的函数。
+		
+		现在假定我们想统计一下代码一共调用了多少次parseInt()，可以把所有的调用都找出来，然后手动加上count += 1，不过这样做太傻了。最佳方案是用我们自己的函数替换掉默认的parseInt()：
+		'use strict';
+		var count = 0;
+		var oldParseInt = parseInt; // 保存原函数
+		window.parseInt = function () {
+			count += 1;
+			return oldParseInt.apply(null, arguments); // 调用原函数
+		};
+		// 测试:
+		parseInt('10');
+		parseInt('20');
+		parseInt('30');
+		console.log('count = ' + count); // 3
+		(   var count = 0;
+			window.parseInt = function () {
+				return count += 1;
+			};
+			parseInt('10');
+			parseInt('20');
+			parseInt('30');
+			parseInt('40');
+			parseInt('50');
+			console.log('count = ' + count);    // 5
+			这中间的这些转换操作时为了干什么的，还是我的理解有问题，看完有点蒙
+
+			你这个函数能做什么?? 你传入的参数有意义???? 想一下
+			你再看下廖老师的函数计数后运行一下函数等于在原函数基础上加了下功能 重点是没有该改变原函数 重要的事情说三遍没有该改变原函数,没有该改变原函数
+			装饰器是设计模式,没有基础或做过软件项目好像有点难以理解,
+			慢慢理解,多看几遍,做做项目就懂了
+			
+			你这样只是完完全全改变的 parseInt() 这个方法的功能，改成了一个针对count变量计数的计数器了，原来的功能没了，所有传不传参没任何意义	
+		)
+		
+		JavaScript的函数其实都指向某个变量。既然变量可以指向函数，函数的参数能接收变量，那么一个函数就可以接收另一个函数作为参数，这种函数就称之为高阶函数。
+		一个最简单的高阶函数：
+		function add(x, y, f) {
+			return f(x) + f(y);
+		}
+		当我们调用add(-5, 6, Math.abs)时，参数x，y和f分别接收-5，6和函数Math.abs，根据函数定义，我们可以推导计算过程为：
+		x = -5;
+		y = 6;
+		f = Math.abs;
+		f(x) + f(y) ==> Math.abs(-5) + Math.abs(6) ==> 11;
+		return 11;
+		编写高阶函数，就是让函数的参数能够接收别的函数。
+		(   
+			其实以我一年的编程经验来看，所谓函数引用、对象引用、函数名其实都是内存中的一个地址，这个地址指向了某个函数或对象或方法，谁拿到了这个地址，谁就拥有了调用函数、调用方法的权利，所以所谓传入函数作为参数，其实就是把这个地址传给了另外一个函数，让另外一个函数拥有操作这个函数的权利，我觉得就是这样，大家觉得呢？
+			厉害呀。一年就理解了精髓。我十分赞同贵兄的想法。其实说白了函数代用，就是一个堆地址调用另一个堆地址里指向的函数呀。这也就解释了之前篇章里this的指向问题。佩服佩服
+			我觉得这个和C++里面的指针差不多。
+			C++ 确实使人理解得更本质更深入
+			引用本来就是指向一个地址啊,就是C语言的指针，指针（应该叫指针变量）储存的就是内存地址,如0xffffffff（32位）。C语言里面函数名就是函数的首地址，数组名就是数组的首地址。指针变量本身也有自己的内存地址，占据4字节（这个可能应该根据机器字长而定，32位就是4字节，64为可能指针就是8字节了）。所以C语言里面有数组指针，指针数组，指针的指针的指针的指针的指针（如 int ** p）.....
+			
+			function add(a) { return function (b) { return a + b; } } add(2)(3)
+			
+			还可以形象的想一下：A函数拿到了B函数的指针，于是他就可以告诉CPU，“嗨，CPU,你拿着这些参数（A函数的入参实参）到0x7fac91d3bf50(B函数的地址)这个地方去找B，然后带着返回值回来”，嗯，大概就是这样。哈哈
+			
+			为什么不能写成这样？fuction add(x, y,f()){ return f(x) + f(y); }
+			你这些的话，第三个参数就不是函数了，而是一个经过f函数计算出来的值。
+			只有写成
+			fuction add(x, y,f){ return f(x) + f(y); }
+			这样，第三个参数才是函数传递进函数。			
+		)
+		
+		由于map()方法定义在JavaScript的Array中，我们调用Array的map()方法，传入我们自己的函数，就得到了一个新的Array作为结果：
+		'use strict';
+		function pow(x) {
+			return x * x;
+		}
+		var arr = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+		var results = arr.map(pow); // [1, 4, 9, 16, 25, 36, 49, 64, 81]
+		console.log(results);
+		注意：map()传入的参数是pow，即函数对象本身。
+
+		你可能会想，不需要map()，写一个循环，也可以计算出结果：
+		var f = function (x) {
+			return x * x;
+		};
+		var arr = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+		var result = [];
+		for (var i=0; i<arr.length; i++) {
+			result.push(f(arr[i]));
+		}
+		的确可以，但是，从上面的循环代码，我们无法一眼看明白“把f(x)作用在Array的每一个元素并把结果生成一个新的Array”。
+				
+		所以，map()作为高阶函数，事实上它把运算规则抽象了，因此，我们不但可以计算简单的f(x)=x2（x的平方），还可以计算任意复杂的函数，比如，把Array的所有数字转为字符串：
+		var arr = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+		arr.map(String); // ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+				
+		Array的reduce()把一个函数作用在这个Array的[x1, x2, x3...]上，这个函数必须接收两个参数，reduce()把结果继续和序列的下一个元素做累积计算，其效果就是：
+		[x1, x2, x3, x4].reduce(f) = f(f(f(x1, x2), x3), x4)
+		
+		比方说对一个Array求和，就可以用reduce实现：
+		var arr = [1, 3, 5, 7, 9];
+		arr.reduce(function (x, y) {
+			return x + y;
+		}); // 25
+		
+		练习：利用reduce()求积：
+		'use strict';
+		function product(arr) {
+		...
+		}
+		// 测试:
+		if (product([1, 2, 3, 4]) === 24 && product([0, 1, 2]) === 0 && product([99, 88, 77, 66]) === 44274384) {
+			console.log('测试通过!');
+		}
+		else {
+			console.log('测试失败!');
+		}
+		继续改进这个例子，想办法把一个字符串13579先变成Array——[1, 3, 5, 7, 9]，再利用reduce()就可以写出一个把字符串转换为Number的函数。
+		'13579'.split('').map(x => +x).reduce((x,y) => x*10+y)
+		'13579'.split('').map(x => x*1).reduce((x,y) => x*10+y)
+		
+		练习：不要使用JavaScript内置的parseInt()函数，利用map和reduce操作实现一个string2int()函数：
+		'use strict';
+		function string2int(s) {
+		...
+		}
+		// 测试:
+		if (string2int('0') === 0 && string2int('12345') === 12345 && string2int('12300') === 12300) {
+			if (string2int.toString().indexOf('parseInt') !== -1) {
+				console.log('请勿使用parseInt()!');
+			} else if (string2int.toString().indexOf('Number') !== -1) {
+				console.log('请勿使用Number()!');
+			} else {
+				console.log('测试通过!');
+			}
+		}
+		else {
+			console.log('测试失败!');
+		}
+		
+		练习: 请把用户输入的不规范的英文名字，变为首字母大写，其他小写的规范名字。输入：['adam', 'LISA', 'barT']，输出：['Adam', 'Lisa', 'Bart']。
+		'use strict';
+		function normalize(arr) {
+		...
+		}	
+		// 测试:
+		if (normalize(['adam', 'LISA', 'barT']).toString() === ['Adam', 'Lisa', 'Bart'].toString()) {
+			console.log('测试通过!');
+		}
+		else {
+			console.log('测试失败!');
+		}
+		
+		['1', '2', '3'].map(parseInt)   // [1, NaN, NaN]
+		['1', '2', '3'].map(Number)     // [1, 2, 3]
+		https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		参考资料： https://www.liaoxuefeng.com/wiki/1022910821149312
