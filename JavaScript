@@ -837,7 +837,229 @@ iterable    遍历Array可以采用下标循环，遍历Map和Set就无法使用
 		['1', '2', '3'].map(Number)     // [1, 2, 3]
 		https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
 		
+		filter也是一个常用的操作，它用于把Array的某些元素过滤掉，然后返回剩下的元素。
+		和map()类似，Array的filter()也接收一个函数。和map()不同的是，filter()把传入的函数依次作用于每个元素，然后根据返回值是true还是false决定保留还是丢弃该元素。
 		
+		例如，在一个Array中，删掉偶数，只保留奇数，可以这么写：
+		var arr = [1, 2, 4, 5, 6, 9, 10, 15];
+		var r = arr.filter(function (x) {
+			return x % 2 !== 0;
+		});
+		r; // [1, 5, 9, 15]
+
+		把一个Array中的空字符串删掉，可以这么写：
+		var arr = ['A', '', 'B', null, undefined, 'C', '  '];
+		var r = arr.filter(function (s) {
+			return s && s.trim(); // 注意：IE9以下的版本没有trim()方法
+		});
+		r; // ['A', 'B', 'C']
+		
+		filter()接收的回调函数，其实可以有多个参数。通常我们仅使用第一个参数，表示Array的某个元素。回调函数还可以接收另外两个参数，表示元素的位置和数组本身：
+		var arr = ['A', 'B', 'C'];
+		var r = arr.filter(function (element, index, self) {
+			console.log(element); // 依次打印'A', 'B', 'C'
+			console.log(index); // 依次打印0, 1, 2
+			console.log(self); // self就是变量arr
+			return true;
+		});
+		
+		利用filter，可以巧妙地去除Array的重复元素：
+		'use strict';
+		var r,arr = ['apple', 'strawberry', 'banana', 'pear', 'apple', 'orange', 'orange', 'strawberry'];
+		r = arr.filter(function (element, index, self) {
+			return self.indexOf(element) === index;
+		});
+		去除重复元素依靠的是indexOf总是返回第一个元素的位置，后续的重复元素位置与indexOf返回的位置不相等，因此被filter滤掉了。
+		
+		请尝试用filter()筛选出素数：
+		'use strict';
+		function get_primes(arr) {
+			...
+			return [];
+		}
+		// 测试:
+		var
+			x,
+			r,
+			arr = [];
+		for (x = 1; x < 100; x++) {
+			arr.push(x);
+		}
+		r = get_primes(arr);
+		if (r.toString() === [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97].toString()) {
+			console.log('测试通过!');
+		} else {
+			console.log('测试失败: ' + r.toString());
+		}
+		
+		排序也是在程序中经常用到的算法。无论使用冒泡排序还是快速排序，排序的核心是比较两个元素的大小。如果是数字，我们可以直接比较，但如果是字符串或者两个对象呢？直接比较数学上的大小是没有意义的，因此，比较的过程必须通过函数抽象出来。通常规定，对于两个元素x和y，如果认为x < y，则返回-1，如果认为x == y，则返回0，如果认为x > y，则返回1，这样，排序算法就不用关心具体的比较过程，而是根据比较结果直接排序。
+		
+		JavaScript的Array的sort()方法就是用于排序的，但是排序结果可能让你大吃一惊：
+		// 看上去正常的结果:
+		['Google', 'Apple', 'Microsoft'].sort(); // ['Apple', 'Google', 'Microsoft'];
+		// apple排在了最后:
+		['Google', 'apple', 'Microsoft'].sort(); // ['Google', 'Microsoft", 'apple']
+		// 无法理解的结果:
+		[10, 20, 1, 2].sort(); // [1, 10, 2, 20]
+				
+		第二个排序把apple排在了最后，是因为字符串根据ASCII码进行排序，而小写字母a的ASCII码在大写字母之后。
+		第三个排序结果是什么鬼？简单的数字排序都能错？
+		这是因为Array的sort()方法默认把所有元素先转换为String再排序，结果'10'排在了'2'的前面，因为字符'1'比字符'2'的ASCII码小。
+				
+		如果不知道sort()方法的默认排序规则，直接对数字排序，绝对栽进坑里！
+		幸运的是，sort()方法也是一个高阶函数，它还可以接收一个比较函数来实现自定义的排序。
+		
+		要按数字大小排序，我们可以这么写：
+		'use strict';
+		var arr = [10, 20, 1, 2];
+		arr.sort(function (x, y) {
+			if (x < y) {
+				return -1;
+			}
+			if (x > y) {
+				return 1;
+			}
+			return 0;
+		});
+		console.log(arr); // [1, 2, 10, 20]
+		
+		如果要倒序排序，我们可以把大的数放前面：
+		var arr = [10, 20, 1, 2];
+		arr.sort(function (x, y) {
+			if (x < y) {
+				return 1;
+			}
+			if (x > y) {
+				return -1;
+			}
+			return 0;
+		}); // [20, 10, 2, 1]
+		
+		默认情况下，对字符串排序，是按照ASCII的大小比较的，现在，我们提出排序应该忽略大小写，按照字母序排序。要实现这个算法，不必对现有代码大加改动，只要我们能定义出忽略大小写的比较算法就可以：
+		var arr = ['Google', 'apple', 'Microsoft'];
+		arr.sort(function (s1, s2) {
+			x1 = s1.toUpperCase();
+			x2 = s2.toUpperCase();
+			if (x1 < x2) {
+				return -1;
+			}
+			if (x1 > x2) {
+				return 1;
+			}
+			return 0;
+		}); // ['apple', 'Google', 'Microsoft']
+		忽略大小写来比较两个字符串，实际上就是先把字符串都变成大写（或者都变成小写），再比较。
+		
+		sort()方法会直接对Array进行修改，它返回的结果仍是当前Array：
+		var a1 = ['B', 'A', 'C'];
+		var a2 = a1.sort();
+		a1; // ['A', 'B', 'C']
+		a2; // ['A', 'B', 'C']
+		a1 === a2; // true, a1和a2是同一对象
+		
+		(
+			JS的sort并不差，只是对数字排序默认有点坑。
+			所有语言的sort都是这么设计：sort(array, fnCompare)，无非是：
+			是否修改原数组，还是返回新排序数组
+			fnCompare的定义，基本都遵循-1，0，1这个方式。
+			
+			感觉上一条回的有点蠢。 你想看的应该是http://stackoverflow.com/questions/1494713/how-does-javascripts-sort-work
+			看回答，底层实现是JS引擎实现的，包含了多种算法。快排和归并一般都会有。标准没有指明实现必须用哪种算法之类。取决于JS引擎。 不过回答是09年的。供参考。
+			
+			var arr = [10, 20, 1, 2]; arr.sort(function(a,b){ return a-b;//a-b为升序，b-a为降序 });
+			return说明： 返回负数不排序，返回正数排序。
+			
+			sort()底层由引擎底层实现，你不用关心具体算法。如果是稳定排序，一般是timsort，如果不稳定，一般是快排。
+			无论何种排序，传入的compare(x,y)是为了比较两个元素的大小，因为底层排序算法不关心两个元素到底怎么比，由调用方给出比较函数。
+			
+			我的理解是相邻的两个元素比较，比如升序，x>y 则需要换位置，就返回1。y继续和右边元素比较，大就返回1换位置，小就返回-1位置不变，一直到这个数组第一遍比较完成，然后继续第二遍、第三遍重复上面步骤比较，直到没有返回1需要换位置的。 数组：6，4，3，5，1 第一遍：4，3，5，1，6 第二遍：3，4，1，5，6 第三遍：3，1，4，5，6 第四遍：1，3，4，5，6
+			
+			嗯，应该是这样。逻辑有点类似于上学时候学C语言时，老师教的冒泡法……
+			
+			理解是错的，不是冒泡排序
+			
+			1.sort 函数默认按 ASCII 排序，很多语言都是这样
+			2.sort 函数的底层是用 TimSort 算法实现的，这个算法是工业级算法，Python，JAVA 的 sort 函数底层都是这个
+			3.**不是冒泡排序！不是冒泡排序！****不是冒泡排序！楼下涉及到冒泡排序实现的都是错的！**别被下面的教程误导！冒泡排序是最简单也是效率最低的算法，除了考试业内没几个人用！
+			4.新人学习没有必要纠结为什么这样，你先接受了，有一定的基础再研究为什么，要不然就是钻到牛角尖里了
+
+			之前用过sort,还真没不知道竟然是这样的sort！他会将元素转换为字符串，再根据字符串的第一个字母对应的ASCLL码来排序的。 弄不懂为什么和其他的高阶函数不一样，他直接修改了原数组。
+			
+			其实就是对数组中的元素就行规范排布，且排序规律那么升，那么降。 arr.sort(function (x, y) {})直接理解成数组中前后两个相邻元素就行。x表示前置位元素，y表示后置位元素，根据x,y的比较三种值，1,0,-1。如果是 x > y 返回1，表示要用前置位元素应当大于后置位元素的排顺序，如果x < y 返回1，表示用后置位元素大于前置位的排序。
+			
+			我来打脸了： 上面的解释完全错误。看了下其他的评论，发现按“换位置”考虑最靠谱。返回1，表示前后两个相邻元素要换位置，-1和1不换。比如:如果x = 10 ,y = 5 x > y return 1。表示x和y要交换位置，那么就是升序排序。如果x = 10,y = 20 y > x return 1.还是x和y交换位置，表示降序排序。
+			
+			我觉得是这样理解，欢迎一起讨论 1.计算机的cpu进行大小比较，其实就是运算器将输入的两个二进制做补码减法，再与0比较大小，结果为负表示前者小于后者，反之表示大于 2.sort()这个函数，我只看文章中描述，将所有元素转化成string进行比较，而且仅比较字符串的第一个字符 sort(x,y)中是两个参数相减了与0比较。默认情况是x-y，且排序为升序排序 3.文中直接将x-y的三种情况（小于，相等，大于）抽象成-1，0，1，其实这里-1为任何负数都行，-3，-7，-2018，1为任何正数都行2，3，4，2018，目的是告诉sort（），cpu计算的是对应的哪种情况 所以当想要升序序列，直接默认情况小于返回-1，相等返回0，大于返回1，而想要降序，则小于返回1，相等返回0，大于返回-1（就是将实际cpu计算结果返回相反情况，欺骗sort（）函数） 4.至于字符大小比较也是转化成对应ASCII码进行比较，只不过大小写的编码不同需要统一再比较
+
+			sort和前面讲的reduce不一样。
+			sort是定义任意两个元素之间如何比较的算法。arr.sort()时会按照冒泡（或其它）算法每次取数组中特定位置的两个元素进行比较，再取再比较... 直到不需要比较了
+			不是像reduce那样就前后两个元素，否则排序不对的...
+			
+			我看了好久，觉得是不是由返回-1的规则决定排序的顺序，比如 if(a < b) return -1就是前小后大的排列； if(a > b) return -1就是前大后小进行排列。 不知道这样理解对不对，还有，如果只规定返回-1的规则，1，0不指定会有什么影响吗
+			
+			1 表示交换元素 0 -1不交换,看你想正序还是倒序,自己决定什么时候return 1
+			
+			想实现将字符串从小到大排在前面，数字从小到大排在后面的排序效果；请问以下代码错误出现在哪
+			var arr=[123,11,"ac",10,"xs"];
+			arr.sort(function(x,y){
+				if(x==NaN&&y!=NaN){
+					return -1;
+				}
+				if(x!=NaN&&y==NaN){
+					return 1;
+				}
+				if(x<y){
+					return -1;
+				}
+				if(x>y){
+					return 1;
+				}
+				return 0;
+			})
+			console.log(arr); // [11, 123, "ac", 10, "xs"]
+			
+			NAN不和任何相等，包括它本身
+			
+			用isNaN()判断就行了
+		)
+		
+		对于数组，除了map()、reduce、filter()、sort()这些方法可以传入一个函数外，Array对象还提供了很多非常实用的高阶函数。
+		
+		every()方法可以判断数组的所有元素是否满足测试条件
+		例如，给定一个包含若干字符串的数组，判断所有字符串是否满足指定的测试条件：
+		'use strict';
+		var arr = ['Apple', 'pear', 'orange'];
+		console.log(arr.every(function (s) {
+			return s.length > 0;
+		})); // true, 因为每个元素都满足s.length>0
+		console.log(arr.every(function (s) {
+			return s.toLowerCase() === s;
+		})); // false, 因为不是每个元素都全部是小写
+		
+		find()方法用于查找符合条件的第一个元素，如果找到了，返回这个元素，否则，返回undefined：
+		'use strict';
+		var arr = ['Apple', 'pear', 'orange'];
+		console.log(arr.find(function (s) {
+			return s.toLowerCase() === s;
+		})); // 'pear', 因为pear全部是小写
+		console.log(arr.find(function (s) {
+			return s.toUpperCase() === s;
+		})); // undefined, 因为没有全部是大写的元素
+		
+		findIndex()和find()类似，也是查找符合条件的第一个元素，不同之处在于findIndex()会返回这个元素的索引，如果没有找到，返回-1：
+		'use strict';
+		var arr = ['Apple', 'pear', 'orange'];
+		console.log(arr.findIndex(function (s) {
+			return s.toLowerCase() === s;
+		})); // 1, 因为'pear'的索引是1
+		console.log(arr.findIndex(function (s) {
+			return s.toUpperCase() === s;
+		})); // -1		
+		
+		forEach()和map()类似，它也把每个元素依次作用于传入的函数，但不会返回新的数组。forEach()常用于遍历数组，因此，传入的函数不需要返回值：
+		'use strict';
+		var arr = ['Apple', 'pear', 'orange'];
+		arr.forEach(console.log); // 依次打印每个元素
 		
 		
 		
