@@ -1,5 +1,121 @@
 JavaScript引擎有一个在行末自动添加分号的机制
 
+在JavaScript的世界里，一切都是对象。
+
+但是某些对象还是和其他对象不太一样。为了区分对象的类型，我们用typeof操作符获取对象的类型，它总是返回一个字符串：
+typeof 123; // 'number'
+typeof NaN; // 'number'
+typeof 'str'; // 'string'
+typeof true; // 'boolean'
+typeof undefined; // 'undefined'
+typeof Math.abs; // 'function'
+typeof null; // 'object'
+typeof []; // 'object'
+typeof {}; // 'object'
+
+可见，number、string、boolean、function和undefined有别于其他类型。特别注意null的类型是object，Array的类型也是object，如果我们用typeof将无法区分出null、Array和通常意义上的object——{}。
+
+除了这些类型外，JavaScript还提供了包装对象，熟悉Java的小伙伴肯定很清楚int和Integer这种暧昧关系。
+
+number、boolean和string都有包装对象。没错，在JavaScript中，字符串也区分string类型和它的包装类型。包装对象用new创建：
+
+var n = new Number(123); // 123,生成了新的包装类型
+var b = new Boolean(true); // true,生成了新的包装类型
+var s = new String('str'); // 'str',生成了新的包装类型
+
+虽然包装对象看上去和原来的值一模一样，显示出来也是一模一样，但他们的类型已经变为object了！所以，包装对象和原始值用===比较会返回false：
+
+typeof new Number(123); // 'object'
+new Number(123) === 123; // false
+
+typeof new Boolean(true); // 'object'
+new Boolean(true) === true; // false
+
+typeof new String('str'); // 'object'
+new String('str') === 'str'; // false
+
+所以闲的蛋疼也不要使用包装对象！尤其是针对string类型！！！
+
+如果我们在使用Number、Boolean和String时，没有写new会发生什么情况？
+
+此时，Number()、Boolean和String()被当做普通函数，把任何类型的数据转换为number、boolean和string类型（注意不是其包装类型）：
+
+var n = Number('123'); // 123，相当于parseInt()或parseFloat()
+typeof n; // 'number'
+
+var b = Boolean('true'); // true
+typeof b; // 'boolean'
+
+var b2 = Boolean('false'); // true! 'false'字符串转换结果为true！因为它是非空字符串！
+var b3 = Boolean(''); // false
+
+var s = String(123.45); // '123.45'
+typeof s; // 'string'
+
+总结一下，有这么几条规则需要遵守：
+-> 不要使用new Number()、new Boolean()、new String()创建包装对象；
+-> 用parseInt()或parseFloat()来转换任意类型到number；
+-> 用String()来转换任意类型到string，或者直接调用某个对象的toString()方法；
+-> 通常不必把任意类型转换为boolean再判断，因为可以直接写if (myVar) {...}；
+-> typeof操作符可以判断出number、boolean、string、function和undefined；
+-> 判断Array要使用Array.isArray(arr)；
+-> 判断null请使用myVar === null；
+-> 判断某个全局变量是否存在用typeof window.myVar === 'undefined'；
+-> 函数内部判断某个变量是否存在用typeof myVar === 'undefined'。
+
+最后有细心的同学指出，任何对象都有toString()方法吗？null和undefined就没有！确实如此，这两个特殊值要除外，虽然null还伪装成了object类型。
+
+更细心的同学指出，number对象调用toString()报SyntaxError：
+123.toString(); // SyntaxError
+遇到这种情况，要特殊处理一下：
+123..toString(); // '123', 注意是两个点！
+(123).toString(); // '123'
+不要问为什么，这就是JavaScript代码的乐趣！
+
+(
+	一般对象的toString()方法只能返回个"[object Object]"
+	
+	1.JavaScript一切皆对象，对象分类型，typeof 返回的是字符串 数组用Array.isArray() null 用=== undefind检测变量是否定义 
+	2.Array有slice,splice,concat,join,indexof map,reduce,filter sort(直接根据比较结果排序，把所有元素转化为字符串，字符串根据ASCII码排)
+	3.闭包是携带状态的函数，返回的函数没有立即调用，所以不能使用可能改变的变量，返回的函数记录了外部函数的参数和局部变量。 
+	4.function* 生成器函数返回生成器对象，然后通过多次调用yield返回值，也是记录状态的函数。 
+	5.除了null,undefind外都有toString方法 
+	6.避免语法冲突，例如匿名函数调用时要加（）,(123).toString 
+	7.Arrow function 是匿名函数 两种形式 this已经定带词法作用域（自动绑定）。
+	8.函数定义有两种形式 函数单独调用this指向undefined或者window（非strict）,函数对象调用apply和call方法绑带this（手动绑定） 
+	9，const let 定义块级作用域 var 声明的变量在函数内部就是函数作用域，全局变量都绑定在window上。 10.解构赋值多个变量数组需要用[],一般对象用{}括好，可以缺省，可以有默认值，可以当参数接收对象类对象，Array对象 
+	11.for in 遍历对象属性 for of，forEach遍历集合对象，map对应的是entry 
+	12,对象类对象键值默认只能是字符串，新类型Map的键值可以是其他类型 
+	13,iterable类型的forEach，Array的filer的回调函数有三个参数，元素，索引，self 14.函数可以接受任意个变量，可以不定义参数，通过agruements（不是数组，类似）获取变量值。...rest可变参数（以数组的形式接收） 
+	15.包装对象类型是object 
+	
+	3.14.toString();   // "3.14"
+	3.14..toString();  // SyntaxError，报错了
+	
+	因为第一个点是指小数点，第二个点才是调用toString()方法，所以3.14不需要用两个点调用toString()方法
+	
+	http://www.zuojj.com/archives/888.html 看看这个文章就懂了
+	
+	可能是已经有了小数点的，用一次点调用就行了。否则用两次。
+	
+	判断全局对象 用typeof window.myVar === 'undefined' 这里写错了吧 undefined 不允许用'' , 直接裸写就好了啊 不然你这个是字符串了啊
+	
+	typeof返回值就是字符串
+	typeof window  // "object"
+	typeof xyz  // "undefined"
+	typeof(typeof window)  // "string"
+	
+	e你说的对的 可是 为什么要多用一个typeof呢
+	直接用 === undefined 不就好了?
+
+	假设变量是abc：
+	如果变量不存在，下面的代码会报错：
+	if (abc === undefined) {} // Uncaught ReferenceError: abc is not defined
+	改成：
+	if (typeof abc === 'undefined') {} // ok，不会报错
+	这是判断一个变量是否已定义的方法
+)
+
 数据类型：
 Number： 123, 0.456, 1.2345e6(1.2345x1000,即1234.5), -99, NaN(Not a Number，当无法计算结果时用NaN表示), Infinity
 		2 / 0; // Infinity
