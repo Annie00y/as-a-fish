@@ -2097,7 +2097,200 @@ JSON    JSON是JavaScript Object Notation的缩写，它是一种数据交换格
 			console.log('测试失败!');
 		}
 
+		在传统的基于Class的语言如Java、C++中，继承的本质是扩展一个已有的Class，并生成新的Subclass。
+		由于这类语言严格区分类和实例，继承实际上是类型的扩展。但是，JavaScript由于采用原型继承，我们无法直接扩展一个Class，因为根本不存在Class这种类型。
 		
+		但是办法还是有的。我们先回顾Student构造函数：
+		function Student(props) {
+			this.name = props.name || 'Unnamed';
+		}
+		Student.prototype.hello = function () {
+			alert('Hello, ' + this.name + '!');
+		}
+		以及Student的原型链：
+		如图： https://static.liaoxuefeng.com/files/attachments/1034288810160288/l
+		
+		现在，我们要基于Student扩展出PrimaryStudent，可以先定义出PrimaryStudent：
+		function PrimaryStudent(props) {
+			// 调用Student构造函数，绑定this变量:
+			Student.call(this, props);
+			this.grade = props.grade || 1;
+		}
+		但是，调用了Student构造函数不等于继承了Student，PrimaryStudent创建的对象的原型是：
+		new PrimaryStudent() ----> PrimaryStudent.prototype ----> Object.prototype ----> null
+		
+		必须想办法把原型链修改为：
+		new PrimaryStudent() ----> PrimaryStudent.prototype ----> Student.prototype ----> Object.prototype ----> null
+		
+		这样，原型链对了，继承关系就对了。新的基于PrimaryStudent创建的对象不但能调用PrimaryStudent.prototype定义的方法，也可以调用Student.prototype定义的方法。
+		
+		如果你想用最简单粗暴的方法这么干：
+		PrimaryStudent.prototype = Student.prototype;
+		是不行的！如果这样的话，PrimaryStudent和Student共享一个原型对象，那还要定义PrimaryStudent干啥？
+
+		我们必须借助一个中间对象来实现正确的原型链，这个中间对象的原型要指向Student.prototype。为了实现这一点，参考道爷（就是发明JSON的那个道格拉斯）的代码，中间对象可以用一个空函数F来实现：
+		// PrimaryStudent构造函数:
+		function PrimaryStudent(props) {
+			Student.call(this, props);
+			this.grade = props.grade || 1;
+		}
+		// 空函数F:
+		function F() {}
+		// 把F的原型指向Student.prototype:
+		F.prototype = Student.prototype;
+		// 把PrimaryStudent的原型指向一个新的F对象，F对象的原型正好指向Student.prototype:
+		PrimaryStudent.prototype = new F();
+		// 把PrimaryStudent原型的构造函数修复为PrimaryStudent:
+		PrimaryStudent.prototype.constructor = PrimaryStudent;
+		// 继续在PrimaryStudent原型（就是new F()对象）上定义方法：
+		PrimaryStudent.prototype.getGrade = function () {
+			return this.grade;
+		};
+		// 创建xiaoming:
+		var xiaoming = new PrimaryStudent({
+			name: '小明',
+			grade: 2
+		});
+		xiaoming.name; // '小明'
+		xiaoming.grade; // 2
+		// 验证原型:
+		xiaoming.__proto__ === PrimaryStudent.prototype; // true
+		xiaoming.__proto__.__proto__ === Student.prototype; // true
+		// 验证继承关系:
+		xiaoming instanceof PrimaryStudent; // true
+		xiaoming instanceof Student; // true
+		
+		用一张图来表示新的原型链：
+		如图: https://static.liaoxuefeng.com/files/attachments/1034288859918112/l
+		
+		注意，函数F仅用于桥接，我们仅创建了一个new F()实例，而且，没有改变原有的Student定义的原型链。
+		
+		如果把继承这个动作用一个inherits()函数封装起来，还可以隐藏F的定义，并简化代码：
+		function inherits(Child, Parent) {
+			var F = function () {};
+			F.prototype = Parent.prototype;
+			Child.prototype = new F();
+			Child.prototype.constructor = Child;
+		}
+		
+		这个inherits()函数可以复用：
+		function Student(props) {
+			this.name = props.name || 'Unnamed';
+		}
+		Student.prototype.hello = function () {
+			alert('Hello, ' + this.name + '!');
+		}
+		function PrimaryStudent(props) {
+			Student.call(this, props);
+			this.grade = props.grade || 1;
+		}
+		// 实现原型继承链:
+		inherits(PrimaryStudent, Student);
+		// 绑定其他方法到PrimaryStudent原型:
+		PrimaryStudent.prototype.getGrade = function () {
+			return this.grade;
+		};
+		
+		JavaScript的原型继承实现方式就是：
+			定义新的构造函数，并在内部用call()调用希望“继承”的构造函数，并绑定this；
+			借助中间函数F实现原型链继承，最好通过封装的inherits函数完成；
+			继续在新的构造函数的原型上定义新方法。
+		
+		(
+			prototype是函数的属性
+			__proto__是对象的
+			
+			不推荐Object.prototype.__proto__的原因：
+			已废弃
+				该特性已经从 Web 标准中删除，虽然一些浏览器目前仍然支持它，但也许会在未来的某个时间停止支持，请尽量不要使用该特性。
+			警告: 通过现代浏览器的操作属性的便利性，可以改变一个对象的 [[Prototype]] 属性, 这种行为在每一个JavaScript引擎和浏览器中都是一个非常慢且影响性能的操作，使用这种方式来改变和继承属性是对性能影响非常严重的，并且性能消耗的时间也不是简单的花费在 obj.__proto__ = ... 语句上, 它还会影响到所有继承来自该 [[Prototype]] 的对象，如果你关心性能，你就不应该在一个对象中修改它的 [[Prototype]]。相反, 创建一个新的且可以继承 [[Prototype]] 的对象，推荐使用 Object.create()。
+			警告: 当Object.prototype.__proto__ 已被大多数浏览器厂商所支持的今天，其存在和确切行为仅在ECMAScript 2015规范中被标准化为传统功能，以确保Web浏览器的兼容性。为了更好的支持，建议只使用 Object.getPrototypeOf()。
+			参考链接<a href='https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/proto'>https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/proto</a>
+		)
+		
+		
+		在上面的章节中我们看到了JavaScript的对象模型是基于原型实现的，特点是简单，缺点是理解起来比传统的类－实例模型要困难，最大的缺点是继承的实现需要编写大量代码，并且需要正确实现原型链。
+		有没有更简单的写法？有！
+
+		新的关键字class从ES6开始正式被引入到JavaScript中。class的目的就是让定义类更简单。
+		
+		我们先回顾用函数实现Student的方法：
+		function Student(name) {
+			this.name = name;
+		}
+		Student.prototype.hello = function () {
+			alert('Hello, ' + this.name + '!');
+		}
+		
+		如果用新的class关键字来编写Student，可以这样写：
+		class Student {
+			constructor(name) {
+				this.name = name;
+			}
+			hello() {
+				alert('Hello, ' + this.name + '!');
+			}
+		}
+		比较一下就可以发现，class的定义包含了构造函数constructor和定义在原型对象上的函数hello()（注意没有function关键字），这样就避免了Student.prototype.hello = function () {...}这样分散的代码。
+
+		最后，创建一个Student对象代码和前面章节完全一样：
+		var xiaoming = new Student('小明');
+		xiaoming.hello();
+		
+		用class定义对象的另一个巨大的好处是继承更方便了。想一想我们从Student派生一个PrimaryStudent需要编写的代码量。现在，原型继承的中间对象，原型对象的构造函数等等都不需要考虑了，直接通过extends来实现：
+		class PrimaryStudent extends Student {
+			constructor(name, grade) {
+				super(name); // 记得用super调用父类的构造方法!
+				this.grade = grade;
+			}
+			myGrade() {
+				alert('I am at grade ' + this.grade);
+			}
+		}
+		
+		注意PrimaryStudent的定义也是class关键字实现的，而extends则表示原型链对象来自Student。子类的构造函数可能会与父类不太相同，例如，PrimaryStudent需要name和grade两个参数，并且需要通过super(name)来调用父类的构造函数，否则父类的name属性无法正常初始化。
+		
+		PrimaryStudent已经自动获得了父类Student的hello方法，我们又在子类中定义了新的myGrade方法。
+
+		ES6引入的class和原有的JavaScript原型继承有什么区别呢？实际上它们没有任何区别，class的作用就是让JavaScript引擎去实现原来需要我们自己编写的原型链代码。简而言之，用class的好处就是极大地简化了原型链代码。
+
+		你一定会问，class这么好用，能不能现在就用上？
+
+		现在用还早了点，因为不是所有的主流浏览器都支持ES6的class。如果一定要现在就用上，就需要一个工具把class代码转换为传统的prototype代码，可以试试Babel这个工具。
+
+		练习: 请利用class重新定义Cat，并让它从已有的Animal继承，然后新增一个方法say()，返回字符串'Hello, xxx!'：
+		'use strict';
+		class Animal {
+			constructor(name) {
+				this.name = name;
+			}
+		}
+		...
+		// 测试:
+		var kitty = new Cat('Kitty');
+		var doraemon = new Cat('哆啦A梦');
+		if ((new Cat('x') instanceof Animal) && kitty && kitty.name === 'Kitty' && kitty.say && typeof kitty.say === 'function' && kitty.say() === 'Hello, Kitty!' && kitty.say === doraemon.say) {
+			console.log('测试通过!');
+		} else {
+			console.log('测试失败!');
+		}
+		这个练习需要浏览器支持ES6的class，如果遇到SyntaxError，则说明浏览器不支持class语法，请换一个最新的浏览器试试。
+		
+		(
+			class Cat extends Animal{ say(){ return "Hello, " + this.name+"!"; } }
+			
+			class Cat extends Animal{ constructor(name){ super(name); }
+			say(){ return "Hello, "+{this.name}+"!"; } }
+			这两种写法有什么不同，都能执行出来
+			
+			如果没有显式指定构造方法，则会自动添加默认的constructor方法。
+			对于基类的默认构造方法为
+			constructor() {}
+			对于派生类的默认构造方法为
+			constructor(...args) {
+			  super(...args);
+			}
+		)
 		
 		
 		
